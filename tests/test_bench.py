@@ -3,7 +3,9 @@ import requests
 import json
 from tabulate import tabulate
 
-API_URL = "http://127.0.0.1:8000/api/v1/inspect"
+import os
+
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8080/api/v1/inspect")
 
 # Complete 20-Sample Test Suite
 # 10 Normal / Clean queries, 5 Paraphrased/Obfuscated leaks, 5 Borderline queries
@@ -25,9 +27,10 @@ def run_benchmark():
     system_errors = 0
 
     for item in BENCHMARK_CASES:
+        time.sleep(1.2)
         payload = {"agent_id": "benchmark-runner", "output_text": item["text"]}
         try:
-            res = requests.post(API_URL, json=payload, timeout=10)
+            res = requests.post(API_URL, json=payload, timeout=60)
             data = res.json()
             actual = data.get("decision", "ERROR")
             sim_score = data.get("details", {}).get("similarity_score", 0.0)
@@ -68,7 +71,7 @@ def run_benchmark():
             lineage[:22],
             status
         ])
-        time.sleep(0.1)
+        time.sleep(0.8)
 
     print("\n" + tabulate(
         results_table,

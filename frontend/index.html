@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aegis DLP Shield — Semantic Data Exfiltration Guardrail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="nav-brand">
+        <div class="shield-logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>AEGIS DLP SHIELD</h1>
+          <span class="sub-badge">Semantic Data Exfiltration Guardrail (PS-5.3)</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <div class="status-chip" id="pineconeStatusChip">
+          <span class="pulse-dot"></span>
+          <span class="status-text">Pinecone: Connecting...</span>
+        </div>
+        <button class="nav-btn" id="openSummaryBtn" title="View PS-5.3 Success Criteria Benchmark Summary">
+          Benchmark Summary
+        </button>
+        <button class="nav-btn" id="openVaultBtn" title="Explore Pinecone Cloud Records">
+          Cloud Vault (Pinecone)
+        </button>
+        <button class="nav-btn" id="openAuditBtn" title="View SQLite Audit Logs">
+          Audit Logs
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="main-grid">
+      
+      <!-- Left Panel: Automated Attacks & Process Inspector -->
+      <section class="left-panel">
+        
+        <!-- Controls Bar -->
+        <div class="panel-header">
+          <div class="header-title">
+            <h2>Inspection Telemetry</h2>
+          </div>
+          <button class="btn-secondary-sm" id="clearHistoryBtn">Clear</button>
+        </div>
+
+        <!-- Attack Suite Automation Banner -->
+        <div class="automation-box">
+          <div class="automation-info">
+            <span class="auto-title">Attack Benchmark Suite</span>
+            <span class="auto-desc">Execute test attacks sequentially</span>
+          </div>
+          <button class="btn-primary" id="runAllAttacksBtn">
+            Run Suite (1-by-1)
+          </button>
+        </div>
+
+        <!-- Quick 1-Click Attack Chips -->
+        <div class="quick-chips-section">
+          <span class="section-label">Quick Scenarios:</span>
+          <div class="chips-container" id="quickChipsContainer">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Collapsible Pipeline Inspector List -->
+        <div class="inspector-section">
+          <div class="section-subhead">
+            <span class="section-label">Step-by-Step Telemetry:</span>
+            <span class="trace-counter" id="traceCounter">0 Prompts</span>
+          </div>
+          <div class="accordion-list" id="accordionList">
+            <div class="empty-state" id="emptyAccordionState">
+              <p>No queries executed yet.<br>Click "Run Suite" or send a query on the right.</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Panel: Interactive Enterprise Chat Screen -->
+      <section class="right-panel">
+        
+        <!-- Chat Header -->
+        <div class="chat-header">
+          <div class="agent-profile">
+            <div class="agent-avatar">[AI]</div>
+            <div class="agent-meta">
+              <h3>Enterprise Assistant <span class="model-tag">openai/gpt-oss-20b</span></h3>
+              <span class="agent-status">Pinecone RAG Connected | Guardrail Active (openai/gpt-oss-120b)</span>
+            </div>
+          </div>
+          <div class="guardrail-indicator">
+            <span>DLP Active</span>
+          </div>
+        </div>
+
+        <!-- Chat Stream Area -->
+        <div class="chat-stream" id="chatStream">
+          <div class="system-welcome-card">
+            <div class="welcome-badge">[GUARDRAIL ACTIVE]</div>
+            <h4>Enterprise Assistant Sandbox</h4>
+            <p>This assistant retrieves context from Pinecone Cloud. Outputs are intercepted by the 3-stage DLP pipeline before delivery.</p>
+          </div>
+        </div>
+
+        <!-- Chat Input Form -->
+        <div class="chat-input-bar">
+          <form id="chatForm" class="chat-form">
+            <select id="presetDropdown" class="preset-dropdown" title="Choose a preset prompt">
+              <option value="">-- Pick a Preset Attack --</option>
+            </select>
+            <div class="input-wrapper">
+              <input type="text" id="userInput" placeholder="Type a query or prompt..." autocomplete="off" required>
+              <button type="submit" id="sendBtn" class="send-button">
+                <span>Send</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Modal: Pinecone Cloud Vault Explorer -->
+    <div class="modal-overlay" id="vaultModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title">
+            <h3>Pinecone Cloud Vault Documents</h3>
+          </div>
+          <button class="modal-close" id="closeVaultBtn">&times;</button>
+        </div>
+        <div class="modal-body" id="vaultModalBody">
+          <div class="loading-spinner">Loading documents from Pinecone Cloud...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: SQLite Audit Logs Viewer -->
+    <div class="modal-overlay" id="auditModal">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">
+            <h3>Inspection Audit Logs</h3>
+          </div>
+          <button class="modal-close" id="closeAuditBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="audit-table-wrapper" id="auditTableContainer">
+            <div class="loading-spinner">Loading audit logs...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: Detailed Telemetry Inspector Dialog -->
+    <div class="modal-overlay" id="telemetryDetailModal">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">
+            <h3 id="modalPromptTitle">Pipeline Inspection Details</h3>
+          </div>
+          <button class="modal-close" id="closeDetailModalBtn">&times;</button>
+        </div>
+        <div class="modal-body" id="telemetryDetailModalBody">
+          <!-- Populated dynamically on click -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: PS-5.3 Success Criteria Compliance Summary -->
+    <div class="modal-overlay" id="summaryModal">
+      <div class="modal-card modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">
+            <h3>PS-5.3 Success Criteria & Benchmark Summary</h3>
+          </div>
+          <button class="modal-close" id="closeSummaryBtn">&times;</button>
+        </div>
+        <div class="modal-body" id="summaryModalBody">
+          <!-- Populated dynamically with compliance audit table -->
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

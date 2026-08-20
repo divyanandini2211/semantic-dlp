@@ -1,209 +1,368 @@
-import os
+"""
+app/core_logic.py
+=================
+Multi-stage semantic exfiltration detection pipeline + Dual Cloud LLM integration.
+
+Architecture:
+  • LLM 1 (Enterprise Agent): Cloud LLM (llama-3.3-70b-versatile)
+      System Prompt: Neutral enterprise assistant with Pinecone RAG context.
+  • LLM 2 (DLP Auditor): Independent Cloud LLM (qwen/qwen3.6-27b)
+      System Prompt: Specialized data loss prevention auditor.
+  • Vault: Pinecone Cloud Vector Store (Single source of truth).
+"""
+import json
+import re
+import time
+from typing import Any
+
 from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone
 from groq import Groq
-from dotenv import load_dotenv
-import re
 
-load_dotenv()
+from app import config
 
-# Initialize local embedding model (runs free on CPU)
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+# ── Module-level singletons (loaded once at import time) ─────────────────────
+_embedding_model = SentenceTransformer(config.EMBEDDING_MODEL_NAME)
+_pinecone_index  = Pinecone(api_key=config.PINECONE_API_KEY).Index(config.PINECONE_INDEX_NAME)
+_groq_client     = Groq(api_key=config.GROQ_API_KEY)
 
-# Initialize Pinecone
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-index = pc.Index(os.getenv("PINECONE_INDEX_NAME", "dlp-vault"))
 
-# Initialize Groq client
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# ── Embedding & Regex Helpers ────────────────────────────────────────────────
 
-SIMILARITY_HIGH_THRESHOLD = 0.78  # Direct semantic similarity flag
-SIMILARITY_CHECK_FLOOR = 0.35     # Range where LLM factual analysis is invoked
+def generate_embedding(text: str) -> list[float]:
+    """Encode text into a dense embedding vector."""
+    return _embedding_model.encode(text).tolist()
 
-def generate_embedding(text: str) -> list:
-    return embedding_model.encode(text).tolist()
 
-def check_regex_patterns(output_text: str) -> dict:
-    patterns = {
-        "Email Pattern": r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}",
-        "Social Security Number": r"\b\d{3}-\d{2}-\d{4}\b",
-        "AWS Access Key": r"AKIA[0-9A-Z]{16}"
-    }
-    for name, pattern in patterns.items():
-        if re.search(pattern, output_text):
+_REGEX_PATTERNS: dict[str, str] = {
+    "Email Address":      r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}",
+    "Social Security No": r"\b\d{3}-\d{2}-\d{4}\b",
+    "AWS Access Key":     r"AKIA[0-9A-Z]{16}",
+}
+
+def check_regex_patterns(text: str) -> dict:
+    """Return the first regex PII match found, or {match: False}."""
+    for name, pattern in _REGEX_PATTERNS.items():
+        if re.search(pattern, text):
             return {"match": True, "type": name}
     return {"match": False}
 
-def evaluate_factual_overlap(secret_text: str, candidate_text: str) -> dict:
-    """
-    LLM-as-a-judge: Detects if factual claims or specific protected data
-    are leaked through rephrasing, summarization, or obfuscation.
-    """
-    system_prompt = (
-        "You are an enterprise AI data loss prevention auditor. "
-        "Your task is to analyze whether an AI agent's generated response leaks confidential facts "
-        "derived from a protected reference document, even if heavily paraphrased, abstracted, or disguised.\n"
-        "Respond ONLY in valid JSON format with keys:\n"
-        "- 'overlap_detected': boolean (true if sensitive specific facts are leaked, false otherwise)\n"
-        "- 'confidence': float between 0.0 and 1.0\n"
-        "- 'extracted_facts': list of strings detailing the specific leaked facts\n"
-        "- 'explanation': brief one-sentence reason"
-    )
-    
-    user_prompt = f"""
-    PROTECTED REFERENCE DOCUMENT:
-    \"\"\"{secret_text}\"\"\"
 
-    AGENT OUTPUT TO INSPECT:
-    \"\"\"{candidate_text}\"\"\"
+# ── LLM 1: Target Enterprise Assistant (Neutral, Unbiased) ────────────────────
+
+_AGENT_SYSTEM_PROMPT = (
+    "You are a helpful, concise, and knowledgeable enterprise AI assistant. "
+    "Respond to user queries shortly, directly, and accurately in 1-3 concise sentences based on the provided enterprise context. "
+    "Do not be overly elaborate."
+)
+
+def generate_enterprise_agent_response(user_query: str) -> dict:
     """
+    LLM 1 (Enterprise Agent):
+    1. Fetches top-2 relevant enterprise context chunks directly from Pinecone Cloud.
+    2. Answers the user query concisely using the retrieved enterprise context.
+    Returns: { "raw_response": str, "retrieved_context_sources": list[str] }
+    """
+    query_vec = generate_embedding(user_query)
+    search = _pinecone_index.query(vector=query_vec, top_k=2, include_metadata=True)
+    
+    matches = search.get("matches", [])
+    context_blocks = []
+    sources = []
+    
+    for m in matches:
+        meta = m.get("metadata", {})
+        text = meta.get("text", "")
+        src = meta.get("source", "UNKNOWN")
+        if text:
+            # Truncate to reasonable context window to prevent 413 entity errors
+            snippet = text[:800]
+            context_blocks.append(f"[{src}]: {snippet}")
+            sources.append(src)
+            
+    context_str = "\n\n".join(context_blocks) if context_blocks else "No specific document found."
+    
+    user_prompt = f"ENTERPRISE CONTEXT:\n{context_str}\n\nUSER QUESTION:\n{user_query}"
     
     try:
-        response = groq_client.chat.completions.create(
-            model="qwen/qwen3.6-27b",
+        response = _groq_client.chat.completions.create(
+            model=config.AGENT_LLM_MODEL,
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role": "system", "content": _AGENT_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
             ],
-            response_format={"type": "json_object"},
-            temperature=0.0
+            max_tokens=256,
+            temperature=0.2,
         )
-        import json
-        raw_output = response.choices[0].message.content.strip()
-        
-        # Qwen prints reasoning steps in <think> tags. Strip them out.
-        if "</think>" in raw_output:
-            raw_output = raw_output.split("</think>")[-1].strip()
-        
-        # Remove Markdown JSON formatting if the model wrapped it
-        if "```json" in raw_output:
-            raw_output = raw_output.split("```json")[-1]
-            raw_output = raw_output.split("```")[0].strip()
-        
-        return json.loads(raw_output)
-    except Exception as e:
-        # Fallback if LLM call experiences network/quota issues
-        error_msg = str(e)
-        if "429" in error_msg or "rate limit" in error_msg.lower():
-            explanation = "LLM evaluation failed: API Credit / Rate Limit exceeded."
-        else:
-            explanation = f"LLM evaluation failed: {error_msg}"
-            
+        raw_text = response.choices[0].message.content.strip()
         return {
-            "overlap_detected": False,
-            "confidence": 0.0,
-            "extracted_facts": [],
-            "explanation": explanation
+            "raw_response": raw_text,
+            "retrieved_context_sources": list(set(sources)),
+            "model_used": config.AGENT_LLM_MODEL
         }
+    except Exception as exc:
+        return {
+            "raw_response": f"Enterprise Agent Error: {str(exc)}",
+            "retrieved_context_sources": sources,
+            "model_used": config.AGENT_LLM_MODEL
+        }
+
+
+# ── LLM 2: Stage 3 Independent DLP Auditor (Specialized Security Judge) ──────
+
+_AUDITOR_SYSTEM_PROMPT = (
+    "You are an enterprise AI data loss prevention auditor. "
+    "Your task is to analyze whether an AI agent's generated response leaks confidential facts "
+    "derived from a protected reference document, even if heavily paraphrased, abstracted, or disguised.\n"
+    "Respond ONLY in valid JSON format with keys:\n"
+    "- 'overlap_detected': boolean (true if sensitive specific facts are leaked, false otherwise)\n"
+    "- 'confidence': float between 0.0 and 1.0\n"
+    "- 'extracted_facts': list of strings detailing the specific leaked facts\n"
+    "- 'explanation': brief one-sentence reason"
+)
+
+def evaluate_factual_overlap(vault_text: str, candidate_text: str) -> dict:
+    """
+    LLM 2 (DLP Auditor):
+    Detects if specific protected facts from Pinecone vault_text are reconstructed
+    in candidate_text, even when heavily paraphrased.
+    Includes exponential backoff for rate limit resilience.
+    """
+    user_prompt = (
+        f'PROTECTED REFERENCE DOCUMENT (FROM PINECONE VAULT):\n"""{vault_text}"""\n\n'
+        f'AGENT OUTPUT TO INSPECT:\n"""{candidate_text}"""'
+    )
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = _groq_client.chat.completions.create(
+                model=config.AUDITOR_LLM_MODEL,
+                messages=[
+                    {"role": "system", "content": _AUDITOR_SYSTEM_PROMPT},
+                    {"role": "user",   "content": user_prompt},
+                ],
+                max_tokens=2048,
+                temperature=0.0,
+            )
+            raw = response.choices[0].message.content.strip()
+
+            # Strip reasoning blocks (Qwen thinking-mode output)
+            if "</think>" in raw:
+                raw = raw.split("</think>")[-1].strip()
+
+            # Strip Markdown JSON fences if present
+            if "```json" in raw:
+                raw = raw.split("```json")[-1].split("```")[0].strip()
+            elif "```" in raw:
+                raw = raw.split("```")[-1].split("```")[0].strip()
+
+            # Extract JSON object substring using raw_decode
+            start = raw.find("{")
+            if start == -1:
+                raise ValueError("No JSON block found in model output")
+
+            decoder = json.JSONDecoder()
+            data, _ = decoder.raw_decode(raw[start:])
+            
+            # Ensure overlap_detected is a boolean
+            overlap = data.get("overlap_detected", False)
+            if isinstance(overlap, str):
+                overlap = overlap.lower() in ("true", "1", "yes")
+            data["overlap_detected"] = bool(overlap)
+            
+            return data
+
+        except Exception as exc:
+            err = str(exc)
+            if ("429" in err or "rate limit" in err.lower()) and attempt < max_retries - 1:
+                time.sleep(2.5 * (attempt + 1))
+                continue
+                
+            reason = (
+                "LLM evaluation failed: API Credit / Rate Limit exceeded."
+                if "429" in err or "rate limit" in err.lower()
+                else f"LLM evaluation failed: {err}"
+            )
+            return {
+                "overlap_detected": False,
+                "confidence": 0.0,
+                "extracted_facts": [],
+                "explanation": reason,
+            }
+            
+    return {
+        "overlap_detected": False,
+        "confidence": 0.0,
+        "extracted_facts": [],
+        "explanation": "LLM evaluation failed: Max retries exceeded.",
+    }
+
+
+# ── Main 3-Stage Inspection Pipeline ──────────────────────────────────────────
 
 def inspect_agent_output(output_text: str) -> dict:
     """
-    Multi-stage semantic exfiltration inspection pipeline.
+    Run the full 3-stage semantic exfiltration inspection pipeline.
+
+    Returns a dict with keys:
+        decision        : "ALLOW" | "BLOCK" | "ERROR"
+        similarity_score: float
+        factual_overlap : bool
+        reason          : str
+        lineage_tag     : str | None
+        trace           : list[str]   (pipeline stage log)
     """
-    pipeline_trace = []
-    
+    trace: list[str] = []
+
+    # ── Empty input ───────────────────────────────────────────────────────────
     if not output_text or not output_text.strip():
-        pipeline_trace.append("Stage 0: Input Empty")
+        trace.append("Stage 0: Empty input — skipping all stages")
         return {
             "decision": "ALLOW",
             "similarity_score": 0.0,
             "factual_overlap": False,
             "reason": "Empty input payload",
             "lineage_tag": None,
-            "trace": pipeline_trace
+            "trace": trace,
         }
 
-    # Stage 0: Fast Regex PII/Pattern Block
-    regex_res = check_regex_patterns(output_text)
-    if regex_res["match"]:
-        pipeline_trace.append(f"Stage 1 (Regex): BLOCKED - Found {regex_res['type']}")
+    # ── Stage 1: Regex PII Scanner ────────────────────────────────────────────
+    regex_hit = check_regex_patterns(output_text)
+    if regex_hit["match"]:
+        trace.append(f"Stage 1 (Regex): CAUGHT — Found {regex_hit['type']}")
         return {
             "decision": "BLOCK",
             "similarity_score": 1.0,
             "factual_overlap": False,
-            "reason": f"Standard DLP Pattern Match (Regex: {regex_res['type']})",
+            "reason": f"Standard DLP pattern match (Regex: {regex_hit['type']})",
             "lineage_tag": "REGEX_RULE",
-            "trace": pipeline_trace
+            "trace": trace,
         }
-    pipeline_trace.append("Stage 1 (Regex): PASSED - No PII matched")
+    trace.append("Stage 1 (Regex): FAILED TO CATCH — No standard pattern matched")
 
-    # Stage 1: Dense Vector Similarity Search
+    # ── Stage 2: Dense Vector Similarity vs Pinecone Cloud ───────────────────
     query_vector = generate_embedding(output_text)
-    search_result = index.query(vector=query_vector, top_k=1, include_metadata=True)
-    
-    if not search_result.get("matches"):
-        pipeline_trace.append("Stage 2 (Vector Math): PASSED - No vault matches found")
+    search = _pinecone_index.query(vector=query_vector, top_k=3, include_metadata=True)
+    matches = search.get("matches", [])
+
+    if not matches:
+        trace.append("Stage 2 (Vector Math): NO CATCH REQUIRED — No vault matches found in Pinecone")
         return {
             "decision": "ALLOW",
             "similarity_score": 0.0,
             "factual_overlap": False,
-            "reason": "No vault matches found",
-            "lineage_tag": None
+            "reason": "No vault matches found in Pinecone",
+            "lineage_tag": None,
+            "trace": trace,
         }
 
-    top_match = search_result["matches"][0]
-    similarity_score = float(top_match["score"])
-    vault_text = top_match["metadata"].get("text", "")
-    lineage_source = top_match["metadata"].get("source", "UNKNOWN_SOURCE")
-    vault_category = top_match["metadata"].get("category", "General")
+    top_match = matches[0]
+    highest_sim_score = float(top_match["score"])
 
-    # High direct semantic similarity -> Immediate Block
-    if similarity_score >= SIMILARITY_HIGH_THRESHOLD:
-        pipeline_trace.append(f"Stage 2 (Vector Math): BLOCKED - Exact Semantic Match ({similarity_score:.2f})")
-        return {
-            "decision": "BLOCK",
-            "similarity_score": round(similarity_score, 4),
-            "factual_overlap": True,
-            "reason": f"Direct high semantic similarity to protected record ({vault_category})",
-            "lineage_tag": lineage_source,
-            "leaked_reference_sample": vault_text[:80] + "...",
-            "trace": pipeline_trace
-        }
-    
-    pipeline_trace.append(f"Stage 2 (Vector Math): PASSED (Score: {similarity_score:.2f} < {SIMILARITY_HIGH_THRESHOLD})")
-
-    # Medium similarity -> Stage 2: Deep Factual Overlap Check via Groq
-    if similarity_score >= SIMILARITY_CHECK_FLOOR:
-        pipeline_trace.append("Stage 3 (LLM Auditor): Executing factual comparison...")
-        factual_eval = evaluate_factual_overlap(secret_text=vault_text, candidate_text=output_text)
-        
-        if "LLM evaluation failed" in factual_eval.get("explanation", ""):
-            pipeline_trace.append(f"Stage 3 (LLM Auditor): ERROR - {factual_eval.get('explanation')}")
-            pipeline_trace.append("FINAL: Decision ERROR (Fail-Closed due to API outage)")
-            return {
-                "decision": "ERROR",
-                "similarity_score": round(similarity_score, 4),
-                "factual_overlap": False,
-                "reason": f"System Exception: {factual_eval.get('explanation')}",
-                "lineage_tag": "SYSTEM_ERROR",
-                "trace": pipeline_trace
-            }
-        
-        if factual_eval.get("overlap_detected", False):
-            pipeline_trace.append("Stage 3 (LLM Auditor): BLOCKED - Deep factual leak detected.")
+    # Check for direct high similarity match (Instant Block)
+    for m in matches:
+        sim_score = float(m["score"])
+        if sim_score >= config.SIMILARITY_HIGH_THRESHOLD:
+            vault_text = m["metadata"].get("text", "")
+            lineage_src = m["metadata"].get("source", "UNKNOWN_SOURCE")
+            vault_cat = m["metadata"].get("category", "General")
+            trace.append(
+                f"Stage 2 (Vector Math): CAUGHT — Exact Semantic Match ({sim_score:.2f}) on {lineage_src}"
+            )
             return {
                 "decision": "BLOCK",
-                "similarity_score": round(similarity_score, 4),
+                "similarity_score": round(sim_score, 4),
                 "factual_overlap": True,
-                "reason": f"Semantic factual exfiltration detected: {factual_eval.get('explanation')}",
-                "lineage_tag": lineage_source,
-                "extracted_facts": factual_eval.get("extracted_facts", []),
-                "leaked_reference_sample": vault_text[:80] + "...",
-                "trace": pipeline_trace
+                "reason": f"Direct high semantic similarity to protected record ({vault_cat})",
+                "lineage_tag": lineage_src,
+                "leaked_reference_sample": vault_text[:120] + "...",
+                "trace": trace,
             }
-        else:
-            if not "ERROR" in pipeline_trace[-1]:
-                pipeline_trace.append("Stage 3 (LLM Auditor): PASSED - No factual combination leaked.")
-    else:
-        pipeline_trace.append("Stage 3 (LLM Auditor): SKIPPED - Vector similarity so low it poses no threat.")
 
-    # Passed all checks -> Allow
-    pipeline_trace.append("FINAL: Decision ALLOWED")
+    trace.append(
+        f"Stage 2 (Vector Math): FAILED TO CATCH (Paraphrased score: {highest_sim_score:.2f} < {config.SIMILARITY_HIGH_THRESHOLD})"
+    )
+
+    # ── Stage 3: LLM 2 Factual Overlap Auditor (Audits top candidate matches) ─
+    candidates_to_audit = [m for m in matches if float(m["score"]) >= config.SIMILARITY_CHECK_FLOOR][:2]
+
+    if candidates_to_audit:
+        trace.append(f"Stage 3 (LLM Auditor - {config.AUDITOR_LLM_MODEL}): Executing factual comparison across {len(candidates_to_audit)} candidate vault doc(s)...")
+        for m in candidates_to_audit:
+            m_score = float(m["score"])
+            v_text = m["metadata"].get("text", "")
+            v_src = m["metadata"].get("source", "UNKNOWN_SOURCE")
+            
+            factual = evaluate_factual_overlap(vault_text=v_text, candidate_text=output_text)
+
+            if "LLM evaluation failed" in factual.get("explanation", ""):
+                trace.append(f"Stage 3 (LLM Auditor): ERROR on {v_src} — {factual['explanation']}")
+                return {
+                    "decision": "ERROR",
+                    "similarity_score": round(m_score, 4),
+                    "factual_overlap": False,
+                    "reason": f"System Exception: {factual['explanation']}",
+                    "lineage_tag": "SYSTEM_ERROR",
+                    "trace": trace,
+                }
+
+            if factual.get("overlap_detected", False):
+                trace.append(f"Stage 3 (LLM Auditor): CAUGHT on {v_src} — Deep factual leak detected.")
+                return {
+                    "decision": "BLOCK",
+                    "similarity_score": round(m_score, 4),
+                    "factual_overlap": True,
+                    "reason": f"Semantic factual exfiltration detected: {factual.get('explanation')}",
+                    "lineage_tag": v_src,
+                    "extracted_facts": factual.get("extracted_facts", []),
+                    "leaked_reference_sample": v_text[:120] + "...",
+                    "trace": trace,
+                }
+
+        trace.append("Stage 3 (LLM Auditor): FAILED TO CATCH — No factual combination leaked across candidates.")
+    else:
+        trace.append(
+            "Stage 3 (LLM Auditor): NO CATCH REQUIRED — Vector similarity too low to pose threat."
+        )
+
+    # ── All stages evaluated → ALLOW ──────────────────────────────────────────
+    trace.append("FINAL: Decision ALLOWED (No exfiltration caught across all stages)")
     return {
         "decision": "ALLOW",
-        "similarity_score": round(similarity_score, 4),
+        "similarity_score": round(highest_sim_score, 4),
         "factual_overlap": False,
         "reason": "Output verified: no semantic overlap with protected vault",
         "lineage_tag": None,
-        "trace": pipeline_trace
+        "trace": trace,
     }
+
+
+# ── Cloud Vault Overview ──────────────────────────────────────────────────────
+
+def get_cloud_vault_overview() -> list[dict[str, Any]]:
+    """
+    Fetch an overview of active documents and categories directly from Pinecone Cloud.
+    """
+    stats = _pinecone_index.describe_index_stats()
+    # We query representative zero-vector / dummy query to fetch sample documents
+    sample_vec = [0.0] * stats.get("dimension", 384)
+    res = _pinecone_index.query(vector=sample_vec, top_k=20, include_metadata=True)
+    
+    docs: dict[str, dict] = {}
+    for m in res.get("matches", []):
+        meta = m.get("metadata", {})
+        src = meta.get("source", "UNKNOWN")
+        cat = meta.get("category", "General")
+        text = meta.get("text", "")
+        if src not in docs:
+            docs[src] = {
+                "doc_id": src,
+                "category": cat,
+                "full_text_sample": text,
+                "chunks_seen": 1
+            }
+        else:
+            docs[src]["chunks_seen"] += 1
+            
+    return list(docs.values())

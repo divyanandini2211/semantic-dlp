@@ -1,5 +1,34 @@
+# === Secrets ===
 .env
+
+# === Python ===
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# === Testing ===
 .pytest_cache/
+.coverage
+htmlcov/
+
+# === Local pip workarounds ===
+vendor/
+
+# === Runtime outputs ===
 audit_logs.db
+*.log
+*.txt
+!requirements.txt
+!.env.example
+!vault/*.txt
+!tests/corpus.json
+
+# === IDE ===
+.vscode/
+.idea/
+*.swp

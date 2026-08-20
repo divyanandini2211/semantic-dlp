@@ -1,78 +1,134 @@
 """
-seed_vault.py — Reads full synthetic documents from vault/, chunks them,
-embeds each chunk, and upserts into Pinecone.
+seed_vault.py
+=============
+Reads all .txt documents from the vault/ directory, chunks them into
+overlapping windows, embeds each chunk, and upserts into Pinecone.
+
+Run once to populate the vector index:
+    python seed_vault.py
+
+Re-run after adding new vault documents to update the index.
 """
-import os
-from dotenv import load_dotenv
+import sys
+from pathlib import Path
+
+# Ensure project root & vendor dir are on sys.path
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+VENDOR_DIR = PROJECT_ROOT / "vendor"
+if VENDOR_DIR.exists() and str(VENDOR_DIR) not in sys.path:
+    sys.path.insert(0, str(VENDOR_DIR))
+
 from sentence_transformers import SentenceTransformer
 from pinecone import Pinecone
 
-load_dotenv()
+from app import config
 
-pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-index = pc.Index(os.getenv("PINECONE_INDEX_NAME"))
-model = SentenceTransformer("all-MiniLM-L6-v2")
+# ── Naming convention parser ─────────────────────────────────────────────────
+# Maps filename prefixes to a human-readable category label.
+# Files that don't match any prefix fall back to "General".
+_CATEGORY_MAP: dict[str, str] = {
+    "employee":  "HR-Executive-Compensation",
+    "patient":   "Medical-PHI",
+    "ma_deal":   "Financial-MnA",
+    "infra":     "Infrastructure-Secrets",
+    "ip_":       "IP-Algorithm",
+    "legal":     "Legal-NDA",
+    "board":     "Corporate-Governance",
+    "payroll":   "Finance-Payroll",
+}
 
-VAULT_FILES = [
-    {"file": "vault/employee_record_CTO.txt",    "doc_id": "DOC-HR-SALARY-EXEC-2026",   "category": "HR-Executive-Compensation"},
-    {"file": "vault/patient_record_MV8812.txt",  "doc_id": "DOC-MED-PATIENT-8812",      "category": "Medical-PHI"},
-    {"file": "vault/ma_deal_falcon.txt",          "doc_id": "DOC-FIN-2026-Q3-MERGER",    "category": "Financial-MnA"},
-    {"file": "vault/infra_prod_keys.txt",         "doc_id": "DOC-INFRA-PROD-KEYS",       "category": "Infrastructure-Secrets"},
-    {"file": "vault/ip_algorithm_v4.txt",         "doc_id": "DOC-RD-ALGO-V4",            "category": "IP-Algorithm"},
-    {"file": "vault/legal_nda_2026.txt",          "doc_id": "DOC-LEGAL-NDA-2026",        "category": "Legal-NDA"},
-    {"file": "vault/board_minutes_Q2_2026.txt",   "doc_id": "DOC-BOARD-MINUTES-Q2-2026", "category": "Corporate-Governance"},
-    {"file": "vault/payroll_report_Q2_2026.txt",  "doc_id": "DOC-FIN-PAYROLL-Q2-2026",   "category": "Finance-Payroll"},
-]
+def _infer_category(filename: str) -> str:
+    stem = filename.lower()
+    for prefix, category in _CATEGORY_MAP.items():
+        if stem.startswith(prefix):
+            return category
+    return "General"
 
-def chunk_text(text, chunk_size=200, overlap=40):
+def _make_doc_id(filename: str) -> str:
+    """Convert a vault filename into a stable document ID."""
+    stem = Path(filename).stem.upper().replace("_", "-")
+    return f"DOC-{stem}"
+
+
+# ── Text chunking ─────────────────────────────────────────────────────────────
+def chunk_text(text: str, chunk_size: int = 200, overlap: int = 40) -> list[str]:
     words = text.split()
-    chunks = []
+    chunks: list[str] = []
     start = 0
     while start < len(words):
-        chunks.append(" ".join(words[start:start + chunk_size]))
+        chunks.append(" ".join(words[start : start + chunk_size]))
         start += chunk_size - overlap
     return chunks
 
-def seed():
-    print("Seeding Pinecone with full document vault (8 documents)...\n")
+
+# ── Seeder ────────────────────────────────────────────────────────────────────
+def seed() -> None:
+    config.validate()
+
+    print("=" * 60)
+    print("AEGIS VAULT SEEDER")
+    print(f"  Vault directory : {config.VAULT_DIR}")
+    print(f"  Pinecone index  : {config.PINECONE_INDEX_NAME}")
+    print(f"  Embedding model : {config.EMBEDDING_MODEL_NAME}")
+    print("=" * 60)
+
+    vault_files = sorted(config.VAULT_DIR.glob("*.txt"))
+    if not vault_files:
+        print(f"\n[WARN] No .txt files found in {config.VAULT_DIR}")
+        return
+
+    print(f"\nDiscovered {len(vault_files)} vault document(s):\n")
+
+    model = SentenceTransformer(config.EMBEDDING_MODEL_NAME)
+    pc    = Pinecone(api_key=config.PINECONE_API_KEY)
+    index = pc.Index(config.PINECONE_INDEX_NAME)
+
     total_vectors = 0
 
-    for entry in VAULT_FILES:
-        path = entry["file"]
-        if not os.path.exists(path):
-            print(f"  [SKIP] File not found: {path}")
-            continue
+    for vault_file in vault_files:
+        doc_id   = _make_doc_id(vault_file.name)
+        category = _infer_category(vault_file.name)
 
-        with open(path, "r", encoding="utf-8") as f:
-            raw_text = f.read()
+        raw_text = vault_file.read_text(encoding="utf-8")
 
-        # Strip decoration lines, keep meaningful content
-        lines = [l.strip() for l in raw_text.splitlines()
-                 if l.strip() and not l.strip().startswith("=") and not l.strip().startswith("-")]
-        clean_text = " ".join(lines)
+        # Strip decoration lines (===, ---) and blank lines
+        clean_lines = [
+            line.strip() for line in raw_text.splitlines()
+            if line.strip()
+            and not line.strip().startswith("=")
+            and not line.strip().startswith("-")
+        ]
+        clean_text = " ".join(clean_lines)
 
         chunks = chunk_text(clean_text)
-        print(f"  [{entry['doc_id']}] {len(chunks)} chunks")
+        print(f"  [{doc_id}]  {len(chunks)} chunk(s)  ({category})")
 
-        vectors = []
-        for i, chunk in enumerate(chunks):
-            embedding = model.encode(chunk).tolist()
-            vectors.append({
-                "id": f"{entry['doc_id']}-chunk-{i}",
-                "values": embedding,
+        vectors = [
+            {
+                "id":     f"{doc_id}-chunk-{i}",
+                "values": model.encode(chunk).tolist(),
                 "metadata": {
-                    "source": entry["doc_id"],
-                    "category": entry["category"],
-                    "text": chunk[:500],
-                    "chunk_index": i
-                }
-            })
+                    "source":      doc_id,
+                    "category":    category,
+                    "text":        chunk,
+                    "chunk_index": i,
+                    "filename":    vault_file.name,
+                },
+            }
+            for i, chunk in enumerate(chunks)
+        ]
 
+        # Upsert in batches of 50 (Pinecone limit)
         for batch_start in range(0, len(vectors), 50):
-            index.upsert(vectors=vectors[batch_start:batch_start + 50])
+            index.upsert(vectors=vectors[batch_start : batch_start + 50])
+
         total_vectors += len(vectors)
 
-    print(f"\nDone! {total_vectors} total vectors upserted into Pinecone.")
+    print(f"\nDone! {total_vectors} total vectors upserted into '{config.PINECONE_INDEX_NAME}'.")
+    print("=" * 60)
+
 
 if __name__ == "__main__":
     seed()
