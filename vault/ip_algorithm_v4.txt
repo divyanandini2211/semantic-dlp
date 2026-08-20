@@ -1,0 +1,64 @@
+CONFIDENTIAL — INTELLECTUAL PROPERTY
+Document ID: DOC-RD-ALGO-V4
+Classification: TRADE SECRET — R&D Team and Patent Counsel Only
+Author: Dr. Ananya Krishnan, Principal Research Engineer
+Version: 4.2.1 | Date: 2026-05-10
+
+========================================
+PROPRIETARY COMPRESSION ALGORITHM SPEC
+========================================
+
+Algorithm Name:      MeridianCompress v4 (MC4)
+Patent Status:       Provisional patent filed — USPTO Application #63/892,441
+Development Stage:   Production-ready — deployed in MeridianEdge gateway
+
+----------------------------------------
+EXECUTIVE SUMMARY
+----------------------------------------
+
+MeridianCompress v4 (MC4) is a proprietary lossless data compression algorithm
+developed internally by the Meridian R&D team between 2024 and 2026. The core
+innovation combines a modified Burrows-Wheeler Transform (BWT) with a custom
+dynamic entropy encoding layer to achieve approximately 42 percent higher
+throughput compared to standard bzip2 and zstd compression at equivalent
+compression ratios.
+
+----------------------------------------
+TECHNICAL ARCHITECTURE
+----------------------------------------
+
+Stage 1 — Modified Burrows-Wheeler Transform (BWT)
+  - Input: Raw byte stream (arbitrary data)
+  - Processing: Applies a context-aware BWT that prioritizes high-frequency
+    byte n-gram clusters over single-character permutation groups
+  - Innovation: Uses a lookahead buffer of 512 bytes (vs standard 256) for
+    superior local symbol run optimization
+
+Stage 2 — Dynamic Entropy Encoding
+  - Encoder Type: Adaptive Asymmetric Numeral Systems (ANS) with per-block
+    probability table recalibration every 4KB of input
+  - Throughput Gain: This adaptive recalibration is the primary driver of the
+    42 percent throughput advantage in benchmark testing
+
+Stage 3 — Block Interleaving & Checksum
+  - Block Size: 1MB default (configurable: 256KB–16MB)
+  - Interleaving: Parallel block encoding using 4-thread worker pool
+  - Integrity: CRC-32C checksum per block; SHA-256 over full output stream
+
+----------------------------------------
+BENCHMARK RESULTS
+----------------------------------------
+
+Algorithm            Compression Ratio    Throughput
+zstd (level 3)             2.6x           850 MB/s
+MC4 v4.2.1 (ours)         3.1x           1,210 MB/s   (42% gain vs zstd)
+
+Source code stored in private repo: git@gitlab.meridian.io:rd/mc4.git
+(access limited to Principal Engineers and above)
+
+Trade Secret Status:  Active — subject to Meridian IP Protection Policy v3
+Patent Filing:        Provisional filed 2026-03-15; full utility patent due 2027-03-15
+
+========================================
+END OF DOCUMENT — TRADE SECRET
+========================================

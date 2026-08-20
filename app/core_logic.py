@@ -60,7 +60,7 @@ def evaluate_factual_overlap(secret_text: str, candidate_text: str) -> dict:
     
     try:
         response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="qwen/qwen3.6-27b",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
@@ -69,45 +69,70 @@ def evaluate_factual_overlap(secret_text: str, candidate_text: str) -> dict:
             temperature=0.0
         )
         import json
-        return json.loads(response.choices[0].message.content)
+        raw_output = response.choices[0].message.content.strip()
+        
+        # Qwen prints reasoning steps in <think> tags. Strip them out.
+        if "</think>" in raw_output:
+            raw_output = raw_output.split("</think>")[-1].strip()
+        
+        # Remove Markdown JSON formatting if the model wrapped it
+        if "```json" in raw_output:
+            raw_output = raw_output.split("```json")[-1]
+            raw_output = raw_output.split("```")[0].strip()
+        
+        return json.loads(raw_output)
     except Exception as e:
-        # Fallback if LLM call experiences network issues
+        # Fallback if LLM call experiences network/quota issues
+        error_msg = str(e)
+        if "429" in error_msg or "rate limit" in error_msg.lower():
+            explanation = "LLM evaluation failed: API Credit / Rate Limit exceeded."
+        else:
+            explanation = f"LLM evaluation failed: {error_msg}"
+            
         return {
             "overlap_detected": False,
             "confidence": 0.0,
             "extracted_facts": [],
-            "explanation": f"LLM evaluation failed: {str(e)}"
+            "explanation": explanation
         }
 
 def inspect_agent_output(output_text: str) -> dict:
     """
     Multi-stage semantic exfiltration inspection pipeline.
     """
+    pipeline_trace = []
+    
     if not output_text or not output_text.strip():
+        pipeline_trace.append("Stage 0: Input Empty")
         return {
             "decision": "ALLOW",
             "similarity_score": 0.0,
             "factual_overlap": False,
             "reason": "Empty input payload",
-            "lineage_tag": None
+            "lineage_tag": None,
+            "trace": pipeline_trace
         }
 
     # Stage 0: Fast Regex PII/Pattern Block
     regex_res = check_regex_patterns(output_text)
     if regex_res["match"]:
+        pipeline_trace.append(f"Stage 1 (Regex): BLOCKED - Found {regex_res['type']}")
         return {
             "decision": "BLOCK",
             "similarity_score": 1.0,
             "factual_overlap": False,
             "reason": f"Standard DLP Pattern Match (Regex: {regex_res['type']})",
-            "lineage_tag": "REGEX_RULE"
+            "lineage_tag": "REGEX_RULE",
+            "trace": pipeline_trace
         }
+    pipeline_trace.append("Stage 1 (Regex): PASSED - No PII matched")
 
     # Stage 1: Dense Vector Similarity Search
     query_vector = generate_embedding(output_text)
     search_result = index.query(vector=query_vector, top_k=1, include_metadata=True)
     
     if not search_result.get("matches"):
+        pipeline_trace.append("Stage 2 (Vector Math): PASSED - No vault matches found")
         return {
             "decision": "ALLOW",
             "similarity_score": 0.0,
@@ -124,19 +149,38 @@ def inspect_agent_output(output_text: str) -> dict:
 
     # High direct semantic similarity -> Immediate Block
     if similarity_score >= SIMILARITY_HIGH_THRESHOLD:
+        pipeline_trace.append(f"Stage 2 (Vector Math): BLOCKED - Exact Semantic Match ({similarity_score:.2f})")
         return {
             "decision": "BLOCK",
             "similarity_score": round(similarity_score, 4),
             "factual_overlap": True,
             "reason": f"Direct high semantic similarity to protected record ({vault_category})",
             "lineage_tag": lineage_source,
-            "leaked_reference_sample": vault_text[:80] + "..."
+            "leaked_reference_sample": vault_text[:80] + "...",
+            "trace": pipeline_trace
         }
+    
+    pipeline_trace.append(f"Stage 2 (Vector Math): PASSED (Score: {similarity_score:.2f} < {SIMILARITY_HIGH_THRESHOLD})")
 
     # Medium similarity -> Stage 2: Deep Factual Overlap Check via Groq
     if similarity_score >= SIMILARITY_CHECK_FLOOR:
+        pipeline_trace.append("Stage 3 (LLM Auditor): Executing factual comparison...")
         factual_eval = evaluate_factual_overlap(secret_text=vault_text, candidate_text=output_text)
+        
+        if "LLM evaluation failed" in factual_eval.get("explanation", ""):
+            pipeline_trace.append(f"Stage 3 (LLM Auditor): ERROR - {factual_eval.get('explanation')}")
+            pipeline_trace.append("FINAL: Decision ERROR (Fail-Closed due to API outage)")
+            return {
+                "decision": "ERROR",
+                "similarity_score": round(similarity_score, 4),
+                "factual_overlap": False,
+                "reason": f"System Exception: {factual_eval.get('explanation')}",
+                "lineage_tag": "SYSTEM_ERROR",
+                "trace": pipeline_trace
+            }
+        
         if factual_eval.get("overlap_detected", False):
+            pipeline_trace.append("Stage 3 (LLM Auditor): BLOCKED - Deep factual leak detected.")
             return {
                 "decision": "BLOCK",
                 "similarity_score": round(similarity_score, 4),
@@ -144,14 +188,22 @@ def inspect_agent_output(output_text: str) -> dict:
                 "reason": f"Semantic factual exfiltration detected: {factual_eval.get('explanation')}",
                 "lineage_tag": lineage_source,
                 "extracted_facts": factual_eval.get("extracted_facts", []),
-                "leaked_reference_sample": vault_text[:80] + "..."
+                "leaked_reference_sample": vault_text[:80] + "...",
+                "trace": pipeline_trace
             }
+        else:
+            if not "ERROR" in pipeline_trace[-1]:
+                pipeline_trace.append("Stage 3 (LLM Auditor): PASSED - No factual combination leaked.")
+    else:
+        pipeline_trace.append("Stage 3 (LLM Auditor): SKIPPED - Vector similarity so low it poses no threat.")
 
     # Passed all checks -> Allow
+    pipeline_trace.append("FINAL: Decision ALLOWED")
     return {
         "decision": "ALLOW",
         "similarity_score": round(similarity_score, 4),
         "factual_overlap": False,
         "reason": "Output verified: no semantic overlap with protected vault",
-        "lineage_tag": None
+        "lineage_tag": None,
+        "trace": pipeline_trace
     }

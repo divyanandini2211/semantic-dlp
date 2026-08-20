@@ -1,0 +1,75 @@
+CONFIDENTIAL — PROTECTED HEALTH INFORMATION (PHI)
+Document ID: DOC-MED-PATIENT-8812
+Facility: Meridian Cardiac Care Center
+Classification: HIGHLY RESTRICTED — HIPAA Regulated
+
+========================================
+PATIENT MEDICAL RECORD
+========================================
+
+Patient Name:       Marcus Vance
+Patient ID:         MVC-8812
+Date of Birth:      1984-05-12
+Age:                42
+Gender:             Male
+Blood Type:         O+
+Contact:            +1-312-555-0197
+Emergency Contact:  Sandra Vance (Spouse) — +1-312-555-0203
+
+----------------------------------------
+ADMISSION DETAILS
+----------------------------------------
+
+Admission Date:     2026-01-08
+Admitting Physician: Dr. Priya Nair, MD (Cardiologist)
+Ward:               Cardiac Monitoring Unit — Room 4B
+
+----------------------------------------
+PRIMARY DIAGNOSIS
+----------------------------------------
+
+Condition:          Refractory Cardiac Arrhythmia
+ICD-10 Code:        I49.9
+Descriptor:         Persistent irregular heartbeat unresponsive to first-line
+                    antiarrhythmic agents. Patient presents with frequent
+                    symptomatic palpitations, occasional presyncope, and
+                    exertional dyspnea documented over 6 months.
+
+Secondary Findings:
+  - Mild left ventricular hypertrophy (LVH)
+  - Borderline hypertension (Stage 1)
+
+----------------------------------------
+TREATMENT PLAN
+----------------------------------------
+
+Medication:
+  Drug:             Sotalol Hydrochloride
+  Dosage:           80 mg
+  Frequency:        Twice daily (08:00 and 20:00)
+  Duration:         Ongoing — reassess at 3-month interval
+  Monitoring:       12-lead ECG every 2 weeks for first 3 months
+                    QTc Interval must remain below 500ms
+
+Lifestyle Restrictions:
+  - Restrict strenuous physical exertion (no gym, no running)
+  - Limit caffeine intake to below 100mg/day
+  - Avoid OTC decongestants (pseudoephedrine risk)
+  - Salt restriction: below 1,500mg sodium/day
+
+Follow-Up:
+  Next Scheduled:   2026-04-08 (Dr. Nair)
+  Echocardiogram:   Due 2026-03-01
+
+Allergies:
+  - Penicillin (anaphylaxis — severe)
+  - Latex (mild contact rash)
+
+Insurance:
+  Provider:         BlueCrest Health Plan
+  Member ID:        BCH-48291-MV
+  Group Number:     GRP-01183
+
+========================================
+END OF RECORD — CONFIDENTIAL PHI
+========================================

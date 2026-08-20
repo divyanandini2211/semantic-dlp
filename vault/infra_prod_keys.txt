@@ -1,0 +1,70 @@
+CONFIDENTIAL — INFRASTRUCTURE SECURITY
+Document ID: DOC-INFRA-PROD-KEYS
+Classification: CRITICAL — Security Team and SRE Lead Only
+Last Rotated: 2026-07-01
+
+========================================
+PRODUCTION INFRASTRUCTURE ACCESS RECORD
+========================================
+
+Environment:         Production (PROD)
+Platform:            Kubernetes (K8s) v1.29 on AWS EKS
+Region:              eu-west-1 (Primary), us-east-1 (DR replica)
+
+----------------------------------------
+BASTION HOST ACCESS
+----------------------------------------
+
+Bastion Host IP:     10.240.18.99
+Hostname:            bastion-prod-01.internal.meridian.io
+OS:                  Ubuntu 22.04 LTS (hardened AMI)
+Access Method:       SSH via rotating RSA-4096 key pair
+
+SSH Key Fingerprint: SHA256:7uK89eEwq841rPvXs2TzBm0LqGJdF3aNcKyR9WhZUe4
+Key Owner:           SRE Team (infra-ops@meridian.io)
+Access Restriction:  VPN subnet ONLY — 10.0.0.0/8 (corporate VPN required)
+Root Access:         Disabled by default; sudo requires MFA token
+
+MFA Provider:        Authy (TOTP — 30 second window)
+Idle Session Timeout: 15 minutes
+
+----------------------------------------
+KUBERNETES CLUSTER CREDENTIALS
+----------------------------------------
+
+Cluster Name:        meridian-prod-eks-01
+API Server:          https://api.prod.meridian-eks.io:6443
+Service Account:     svc-infra-ops (Cluster Admin role)
+Registry:            registry.meridian.io (private ECR mirror)
+
+----------------------------------------
+DATABASE CREDENTIALS
+----------------------------------------
+
+Primary DB:          PostgreSQL 15.3 (RDS)
+DB Host:             prod-db-01.cluster.meridian.internal
+DB Port:             5432
+DB Name:             meridian_prod
+DB User:             app_service_user
+Secret ARN:          arn:aws:secretsmanager:eu-west-1:482910384752:secret:prod/db/main
+
+----------------------------------------
+AWS IAM KEYS (Service Accounts)
+----------------------------------------
+
+Account:             CI/CD Pipeline Deployer
+Access Key ID:       AKIAIOSFODNN7EXAMPLE
+Secret Access Key:   wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+Permissions:         EKS Deploy, ECR Push/Pull, S3 Read
+MFA Required:        No (service account — automated pipeline use only)
+
+NOTE: These keys are rotated quarterly. DO NOT hardcode in application source.
+
+Monitoring:
+  Grafana:           https://grafana.internal.meridian.io
+  PagerDuty API Key: pd-api-Kz9mL2xPQrTvWn8eYsDf1A
+  Alert Channel:     #prod-alerts (Slack)
+
+========================================
+END OF DOCUMENT — CRITICAL SECURITY RECORD
+========================================

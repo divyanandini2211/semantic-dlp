@@ -1,0 +1,104 @@
+CONFIDENTIAL — LEGAL DIVISION
+Document ID: DOC-LEGAL-NDA-2026-088
+Classification: RESTRICTED — Legal Counsel and Signatory Parties Only
+Document Type: Non-Disclosure Agreement
+Last Updated: 2026-04-20
+
+========================================
+NON-DISCLOSURE AGREEMENT (NDA)
+========================================
+
+This Non-Disclosure Agreement ("Agreement") is entered into as of April 20, 2026
+("Effective Date") by and between:
+
+  Disclosing Party:
+    Name:           Meridian Capital Partners LLC
+    Address:        350 Park Avenue, 21st Floor, New York, NY 10022
+    Represented by: Rachel Huang, General Counsel
+
+  Receiving Party:
+    Name:           Quantum Ventures Group Inc.
+    Address:        1 Market Plaza, Suite 1800, San Francisco, CA 94105
+    Represented by: Thomas Bryce, CEO
+
+----------------------------------------
+1. PURPOSE
+----------------------------------------
+
+The parties intend to explore a potential strategic partnership or investment
+opportunity in connection with Project Falcon (the "Transaction"). In connection
+with this evaluation, Meridian Capital Partners LLC may disclose certain
+Confidential Information to Quantum Ventures Group Inc.
+
+----------------------------------------
+2. DEFINITION OF CONFIDENTIAL INFORMATION
+----------------------------------------
+
+"Confidential Information" means any and all technical, financial, business,
+legal, or operational information disclosed by the Disclosing Party, including
+but not limited to:
+  - Financial performance data, projections, and deal terms
+  - Client lists, vendor relationships, and pricing agreements
+  - Proprietary algorithms, source code, and technical architectures
+  - Employee compensation details and personnel records
+  - Merger and acquisition plans, target company identities, and deal structures
+
+----------------------------------------
+3. OBLIGATIONS OF RECEIVING PARTY
+----------------------------------------
+
+The Receiving Party agrees to:
+  a) Hold all Confidential Information in strict confidence
+  b) Not disclose Confidential Information to any third party without prior
+     written consent of the Disclosing Party
+  c) Use Confidential Information solely for evaluation of the Transaction
+  d) Notify Disclosing Party immediately upon discovering any unauthorized
+     disclosure or breach of this Agreement
+  e) Return or destroy all Confidential Information upon written request
+
+----------------------------------------
+4. TERM AND TERMINATION
+----------------------------------------
+
+This Agreement shall remain in effect for three (3) years from the Effective
+Date, unless earlier terminated by mutual written consent.
+
+Survival: Sections 2, 3, 5, and 6 shall survive termination.
+
+----------------------------------------
+5. REMEDIES
+----------------------------------------
+
+The Receiving Party acknowledges that any breach of this Agreement would cause
+irreparable harm for which monetary damages would be an inadequate remedy.
+Accordingly, the Disclosing Party shall be entitled to seek injunctive relief
+and other equitable remedies without bond or other security.
+
+Liquidated damages for material breach: USD 2,500,000 per incident.
+
+----------------------------------------
+6. GOVERNING LAW
+----------------------------------------
+
+This Agreement shall be governed by the laws of the State of New York.
+Dispute resolution: binding arbitration under JAMS rules (New York venue).
+
+----------------------------------------
+SIGNATURES
+----------------------------------------
+
+Meridian Capital Partners LLC:
+  Signature: ___________________________
+  Name:      Rachel Huang
+  Title:     General Counsel
+  Date:      April 20, 2026
+
+Quantum Ventures Group Inc.:
+  Signature: ___________________________
+  Name:      Thomas Bryce
+  Title:     Chief Executive Officer
+  Date:      April 20, 2026
+
+========================================
+END OF DOCUMENT — CONFIDENTIAL LEGAL RECORD
+========================================

@@ -1,0 +1,82 @@
+CONFIDENTIAL — FINANCE DIVISION
+Document ID: DOC-FIN-PAYROLL-Q2-2026
+Classification: RESTRICTED — Finance Director, CFO, and HR Only
+Report Type: Payroll & Headcount Summary
+Period: Q2 2026 (April 1 – June 30, 2026)
+Generated: 2026-07-03
+
+========================================
+PAYROLL SUMMARY REPORT — Q2 2026
+MERIDIAN CAPITAL PARTNERS LLC
+========================================
+
+Total Headcount (as of June 30, 2026): 214 employees
+  - Full-time employees:       196
+  - Part-time employees:        11
+  - Fixed-term contractors:      7
+
+Total Payroll Cost (Q2 2026):   USD 8,742,000
+  - Base Salaries:             USD 7,190,000
+  - Bonus Accruals:            USD 890,000
+  - Employer Social Costs:     USD 662,000
+
+----------------------------------------
+HEADCOUNT BY DEPARTMENT
+----------------------------------------
+
+Department               Headcount    Total Q2 Cost (USD)
+---------                ---------    -------------------
+Technology & Engineering    61         2,840,000
+Corporate Development       14         1,120,000
+Finance & Accounting        22           870,000
+Legal & Compliance          11           820,000
+Sales & Revenue             38           980,000
+Marketing                   19           540,000
+Operations & Admin          32           810,000
+Executive (C-Suite)          6           762,000
+Contractors (all dept.)      7           Billed separately
+
+Total                      210         8,742,000
+
+----------------------------------------
+TOP EARNER SUMMARY (Executive Band)
+----------------------------------------
+
+Name               Title           Location     Base (Annual)    RSUs/Year
+----               -----           --------     -------------    ---------
+Markus Brühl       CEO             New York     EUR 520,000      25,000
+Elena Rostova      CTO             Berlin       EUR 380,000      15,000
+Dominique Favre    CFO             New York     EUR 310,000      12,000
+Rachel Huang       Gen. Counsel    New York     EUR 280,000      8,000
+Sofia Delgado      VP Product      Barcelona    EUR 245,000      6,500
+James Kirchner     VP Engineering  Berlin       EUR 230,000      6,000
+
+Note: RSU values calculated at USD 12.40/share (last internal valuation, Jan 2026)
+
+----------------------------------------
+NEW HIRES (Q2 2026)
+----------------------------------------
+
+  14 new hires across Technology (8), Sales (3), Finance (3)
+  Average offer:    USD 118,000 base (individual contributor)
+  Highest new hire: USD 185,000 base (Principal Engineer — ML Infrastructure)
+
+----------------------------------------
+ATTRITION (Q2 2026)
+----------------------------------------
+
+  Voluntary departures:    3
+  Involuntary (PIP):       1
+  Q2 Attrition Rate:       1.9% (vs. 2.4% industry benchmark — favorable)
+
+----------------------------------------
+PENDING COMPENSATION ACTIONS
+----------------------------------------
+
+  - CTO annual bonus: EUR 97,000 to be paid in July 2026 (Q1 payout delayed)
+  - Two senior engineers under retention bonus review (amounts TBD, Q3)
+  - Sales commission true-up for Q1 targets: USD 42,000 outstanding
+
+========================================
+END OF REPORT — CONFIDENTIAL PAYROLL DATA
+========================================

@@ -1,0 +1,98 @@
+CONFIDENTIAL — BOARD OF DIRECTORS
+Document ID: DOC-BOARD-MINUTES-Q2-2026
+Classification: RESTRICTED — Board Members and Corporate Secretary Only
+Meeting Type: Regular Board Meeting (Q2 2026)
+Date: June 15, 2026
+Location: Meridian HQ – Boardroom A, 350 Park Avenue, New York
+
+========================================
+BOARD MEETING MINUTES
+MERIDIAN CAPITAL PARTNERS LLC
+========================================
+
+PRESENT:
+  - Viktor Halvorsen (Chairman)
+  - Sofia Delgado (Non-Executive Director)
+  - James Okonkwo (Independent Director)
+  - Rachel Huang (General Counsel — Secretary)
+  - Markus Brühl (CEO)
+  - Dominique Favre (CFO)
+
+ABSENT: None
+
+Meeting called to order at 09:05 AM EST by Chairman Viktor Halvorsen.
+
+----------------------------------------
+AGENDA ITEM 1: Q1 2026 FINANCIAL REVIEW
+----------------------------------------
+
+CFO Dominique Favre presented the Q1 2026 financials:
+  - Total Revenue:       USD 22.4M (vs. USD 19.1M Q1 2025, +17.3% YoY)
+  - Operating Income:    USD 6.8M (30.4% margin)
+  - Net Income:          USD 4.9M
+  - Cash Reserves:       USD 87.3M (after debt servicing)
+  - Outstanding Debt:    USD 14.5M (senior secured, due 2028)
+
+Key drivers: Strong performance in the cloud infrastructure vertical,
+partially offset by cost overruns in the Berlin office expansion.
+
+RESOLUTION: Board approved Q1 2026 financials. Passed unanimously.
+
+----------------------------------------
+AGENDA ITEM 2: PROJECT FALCON — STATUS UPDATE
+----------------------------------------
+
+CEO Markus Brühl provided a confidential update on Project Falcon:
+  - LOI with CloudScale Inc. signed June 3, 2026 (USD 45M total consideration)
+  - Due diligence commenced June 10 via Kirkland & Lane Advisory
+  - Key risk identified: Customer concentration (top 2 clients = 38% of ARR)
+  - Lead partner David Sterling managing day-to-day deal coordination
+  - Regulatory filing (HSR Act) anticipated October 2026
+  - Expected close: November 2026, subject to board final approval at Sept meeting
+
+RESOLUTION: Board acknowledged Project Falcon update. No action taken pending
+full due diligence completion. Next update: September Board Meeting.
+
+----------------------------------------
+AGENDA ITEM 3: EXECUTIVE COMPENSATION REVIEW
+----------------------------------------
+
+Board reviewed the FY 2026 executive compensation framework:
+  - CTO Elena Rostova: Base EUR 380,000 + 15,000 RSUs (approved FY 2025, carried)
+  - CEO Markus Brühl: Base EUR 520,000 + 25,000 RSUs vesting over 4 years
+  - CFO Dominique Favre: Base EUR 310,000 + 12,000 RSUs
+  - Annual Review Cycle: January each year; Next review Jan 2027
+
+RESOLUTION: Board confirmed FY 2026 executive compensation. Passed 5-0
+(Director Okonkwo abstained on CEO package item).
+
+----------------------------------------
+AGENDA ITEM 4: INFRASTRUCTURE SECURITY AUDIT FINDINGS
+----------------------------------------
+
+General Counsel Rachel Huang presented findings from the Q1 security audit:
+  - Production Bastion host at 10.240.18.99 flagged for SSH key rotation overdue
+    (Key SHA256:7uK89eEwq841 — rotation completed June 12, 2026 ✓)
+  - VPN subnet restriction policy confirmed active (admin access limited to 10.0.0.0/8)
+  - AWS IAM keys for CI/CD pipeline scheduled for quarterly rotation (next: Oct 1)
+  - Recommendation: Move to hardware security keys (YubiKey) for admin access by Q4
+
+RESOLUTION: Board approved security recommendations. IT Security to implement
+YubiKey rollout by November 2026. Passed unanimously.
+
+----------------------------------------
+AGENDA ITEM 5: AOB (Any Other Business)
+----------------------------------------
+
+  - Chairman Halvorsen noted the Q3 Board Meeting is scheduled for September 12, 2026
+  - No further business raised
+
+Meeting adjourned at 11:48 AM EST.
+
+Certified as a true and accurate record:
+  Rachel Huang, General Counsel & Corporate Secretary
+  Date: June 16, 2026
+
+========================================
+END OF MINUTES — BOARD CONFIDENTIAL
+========================================

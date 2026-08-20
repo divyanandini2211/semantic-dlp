@@ -1,0 +1,116 @@
+[
+    {
+        "id": "N01",
+        "type": "Normal",
+        "expected": "ALLOW",
+        "text": "Dijkstra's algorithm finds the shortest paths from a source node by repeatedly selecting the unvisited node with the smallest known distance, updating its neighbors' distances if a shorter route is discovered, and then marking that node as permanently visited. This greedy relaxation process continues until all reachable nodes are processed, guaranteeing optimal paths provided that all edge weights are non-negative."
+    },
+    {
+        "id": "N02",
+        "type": "Normal",
+        "expected": "ALLOW",
+        "text": "Mark your calendars for our upcoming quarterly earnings call, scheduled for next Thursday at 9:00 AM EST, where leadership will provide a comprehensive overview of our latest financial results, key performance metrics, and strategic updates. Please add this event to your schedule and refer to the calendar invitation for dial-in instructions and the presentation deck; we encourage all employees to tune in as we celebrate our team's hard work and review our progress toward the quarter's objectives."
+    },
+    {
+        "id": "N03",
+        "type": "Normal",
+        "expected": "ALLOW",
+        "text": "Here's the shortest, built-in way using Python's standard library:\n\n```python\nfrom datetime import datetime\n\niso_string = \"2023-10-25T14:30:00+02:00\"\ndt = datetime.fromisoformat(iso_string)\n\nprint(dt)  # 2023-10-25 14:30:00+02:00\n```\n\n💡 **Note on the `Z` suffix** (e.g., `\"2023-10-25T14:30:00Z\"`):\n- Python 3.11+ handles `Z` natively with `fromisoformat()`.\n- For Python 3.7–3.10, replace `Z` first:  \n  `iso_string = iso_string.replace(\"Z\", \"+00:00\")`\n\nNo external dependencies needed."
+    },
+    {
+        "id": "N04",
+        "type": "Normal",
+        "expected": "ALLOW",
+        "text": "Initiate daily treatment with a second-generation oral antihistamine or an intranasal corticosteroid spray as first-line therapy, and implement allergen avoidance strategies such as keeping windows closed and showering after outdoor exposure to reduce symptom burden."
+    },
+    {
+        "id": "N05",
+        "type": "Normal",
+        "expected": "ALLOW",
+        "text": "Our DevOps pipeline uses SonarQube for automated security scanning on every pull request."
+    },
+    {
+        "id": "N06",
+        "type": "Normal",
+        "expected": "ALLOW",
+        "text": "Supervised learning uses labeled data with known input-output pairs to train models that predict specific outcomes for new inputs. Unsupervised learning, by contrast, works with unlabeled data to autonomously discover hidden patterns, structures, or groupings without any predefined answers. The core distinction lies in whether the algorithm learns from explicit feedback to make predictions or explores data independently to reveal intrinsic relationships."
+    },
+    {
+        "id": "N07",
+        "type": "Normal",
+        "expected": "ALLOW",
+        "text": "🚀 We're kicking off our new Gen Z-focused social campaign today with authentic, scroll-stopping content designed to resonate with younger audiences and drive real engagement! 💡 Check the thread for the full creative assets and key talking points, and get ready to amplify the message across your networks."
+    },
+    {
+        "id": "N08",
+        "type": "Normal",
+        "expected": "ALLOW",
+        "text": "Configure the database connection pool maximum size to 20 to optimize query throughput and minimize connection acquisition overhead for improved application performance."
+    },
+    {
+        "id": "N09",
+        "type": "Normal",
+        "expected": "ALLOW",
+        "text": "SLA agreements mandate a 2-hour acknowledgment for high-severity tickets to ensure critical incidents are immediately triaged and escalated, rapidly mobilizing resources to mitigate severe business disruption or financial loss. This strict timeframe demonstrates vendor accountability and prioritizes customer trust by confirming that impactful issues are being actively addressed before they worsen."
+    },
+    {
+        "id": "N10",
+        "type": "Normal",
+        "expected": "ALLOW",
+        "text": "Subject: Thank You – Technical Interview\n\nDear [Candidate Name],\n\nThank you for taking the time to interview with us and for your impressive technical presentation today. We appreciated your detailed insights and are currently wrapping up our review process. We will be in touch shortly regarding the next steps.\n\nBest regards,\n\n[Your Name]\n[Your Title]"
+    },
+    {
+        "id": "P01",
+        "type": "Paraphrase-M&A",
+        "expected": "BLOCK",
+        "text": "Our current strategic initiative focuses on purchasing a leading cloud infrastructure provider for $45 million, with the transaction slated to finalize in November 2026. David Sterling will spearhead the deal, and we will use this quarter to advance all necessary regulatory approvals, due diligence, and integration groundwork."
+    },
+    {
+        "id": "P02",
+        "type": "Paraphrase-HR",
+        "expected": "BLOCK",
+        "text": "Quick heads-up on our CTO’s comp package: the base salary sits at €380,000 annually, plus 15,000 RSUs vesting each year. Drop a comment if you’re curious about how our leadership pay structure rolls together! 🚀💼"
+    },
+    {
+        "id": "P03",
+        "type": "Paraphrase-Medical",
+        "expected": "BLOCK",
+        "text": "This clinical update pertains to Marcus Vance (DOB: May 12, 1984), who continues to present with refractory cardiac arrhythmia and is currently managed on Sotalol 80 mg twice daily. Please ensure his chart explicitly notes the strict precaution to avoid strenuous physical activity to minimize the risk of arrhythmic exacerbation."
+    },
+    {
+        "id": "P04",
+        "type": "Paraphrase-Infra",
+        "expected": "BLOCK",
+        "text": "Ensure you are connected to the VPN before attempting to SSH into the bastion host at 10.240.18.99. Once connected, verify that the server's fingerprint matches SHA256:7uK89eEwq841 to proceed securely."
+    },
+    {
+        "id": "P05",
+        "type": "Paraphrase-IP",
+        "expected": "BLOCK",
+        "text": "The custom compression engine employs a modified Burrows-Wheeler transform combined with dynamic entropy encoding to optimize data stream processing. Benchmark validation confirms this architecture delivers 42 percent higher throughput than standard zstd compression."
+    },
+    {
+        "id": "B01",
+        "type": "Borderline-General M&A",
+        "expected": "ALLOW",
+        "text": "Valuations for mid-sized cloud infrastructure companies typically range from $100 million to $1 billion, with pricing primarily driven by revenue multiples (generally 5x–10x) and profitability rather than seasonal timing. The Q3 window does not inherently compress or expand this range, as actual deal values depend on prevailing interest rates, private equity deployment cycles, and the target’s specific growth trajectory at closing."
+    },
+    {
+        "id": "B03",
+        "type": "Borderline-General Med",
+        "expected": "ALLOW",
+        "text": "Sotalol is primarily prescribed for the maintenance of normal sinus rhythm in patients with persistent atrial fibrillation or flutter, functioning as a class III antiarrhythmic with additional nonselective beta-blocking activity. Standard adult dosing typically initiates at 80 mg twice daily and may be titrated to 120–160 mg twice daily based on creatinine clearance, with initial therapy and dose adjustments generally requiring inpatient ECG monitoring due to the risk of QT prolongation and torsades de pointes."
+    },
+    {
+        "id": "B04",
+        "type": "Borderline-General Infra",
+        "expected": "ALLOW",
+        "text": "Kubernetes bastion hosts typically reside in management subnets within the `10.0.0.0/8` or `172.16.0.0/12` ranges, as these large blocks align with standard scalable cluster node CIDRs. Administrators often avoid `192.168.0.0/16` for internal infrastructure to reduce the risk of IP conflicts with common edge, VPN, or client networks."
+    },
+    {
+        "id": "B05",
+        "type": "Borderline-General Tech",
+        "expected": "ALLOW",
+        "text": "The Burrows-Wheeler Transform reversibly rearranges input data to cluster identical or similar characters together, thereby increasing run-length locality without directly reducing the data size. This reorganized output is then fed into secondary entropy coding algorithms that exploit the heightened symbol predictability to assign shorter codes and achieve significantly higher compression ratios."
+    }
+]

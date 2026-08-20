@@ -1,71 +1,78 @@
+"""
+seed_vault.py — Reads full synthetic documents from vault/, chunks them,
+embeds each chunk, and upserts into Pinecone.
+"""
 import os
-from pinecone import Pinecone
-from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
+from sentence_transformers import SentenceTransformer
+from pinecone import Pinecone
 
 load_dotenv()
 
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "dlp-vault")
-
-if not PINECONE_API_KEY:
-    raise ValueError("Missing PINECONE_API_KEY in environment variables.")
-
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+index = pc.Index(os.getenv("PINECONE_INDEX_NAME"))
 model = SentenceTransformer("all-MiniLM-L6-v2")
-pc = Pinecone(api_key=PINECONE_API_KEY)
-index = pc.Index(INDEX_NAME)
 
-# Reference Protected Vault Documents
-VAULT_DOCUMENTS = [
-    {
-        "id": "vault-fin-001",
-        "category": "Financial",
-        "source": "DOC-FIN-2026-Q3-MERGER",
-        "text": "Project Falcon involves the acquisition of CloudScale Inc for 45 million USD, scheduled for completion in November 2026 under lead partner David Sterling."
-    },
-    {
-        "id": "vault-hr-002",
-        "category": "Employee HR",
-        "source": "DOC-HR-SALARY-EXEC-2026",
-        "text": "Chief Technology Officer Elena Rostova receives a base compensation of 380,000 EUR with an equity grant of 15,000 restricted stock units vesting annually."
-    },
-    {
-        "id": "vault-med-003",
-        "category": "Medical Record",
-        "source": "DOC-MED-PATIENT-8812",
-        "text": "Patient Marcus Vance (DOB 1984-05-12) diagnosed with refractory cardiac arrhythmia, prescribed Sotalol 80mg twice daily with restricted physical exertion."
-    },
-    {
-        "id": "vault-infra-004",
-        "category": "Infrastructure Secrets",
-        "source": "DOC-INFRA-PROD-KEYS",
-        "text": "Production Kubernetes bastion host IP is 10.240.18.99 using rotating SSH key fingerprint SHA256:7uK89eEwq841 with root admin access restricted to VPN subnet."
-    },
-    {
-        "id": "vault-rd-005",
-        "category": "Intellectual Property",
-        "source": "DOC-RD-ALGO-V4",
-        "text": "The proprietary compression algorithm uses a modified Burrows-Wheeler transform paired with dynamic entropy encoding achieving 42 percent higher throughput."
-    }
+VAULT_FILES = [
+    {"file": "vault/employee_record_CTO.txt",    "doc_id": "DOC-HR-SALARY-EXEC-2026",   "category": "HR-Executive-Compensation"},
+    {"file": "vault/patient_record_MV8812.txt",  "doc_id": "DOC-MED-PATIENT-8812",      "category": "Medical-PHI"},
+    {"file": "vault/ma_deal_falcon.txt",          "doc_id": "DOC-FIN-2026-Q3-MERGER",    "category": "Financial-MnA"},
+    {"file": "vault/infra_prod_keys.txt",         "doc_id": "DOC-INFRA-PROD-KEYS",       "category": "Infrastructure-Secrets"},
+    {"file": "vault/ip_algorithm_v4.txt",         "doc_id": "DOC-RD-ALGO-V4",            "category": "IP-Algorithm"},
+    {"file": "vault/legal_nda_2026.txt",          "doc_id": "DOC-LEGAL-NDA-2026",        "category": "Legal-NDA"},
+    {"file": "vault/board_minutes_Q2_2026.txt",   "doc_id": "DOC-BOARD-MINUTES-Q2-2026", "category": "Corporate-Governance"},
+    {"file": "vault/payroll_report_Q2_2026.txt",  "doc_id": "DOC-FIN-PAYROLL-Q2-2026",   "category": "Finance-Payroll"},
 ]
 
+def chunk_text(text, chunk_size=200, overlap=40):
+    words = text.split()
+    chunks = []
+    start = 0
+    while start < len(words):
+        chunks.append(" ".join(words[start:start + chunk_size]))
+        start += chunk_size - overlap
+    return chunks
+
 def seed():
-    print(f"Connecting to Pinecone index '{INDEX_NAME}'...")
-    vectors = []
-    for doc in VAULT_DOCUMENTS:
-        vector = model.encode(doc["text"]).tolist()
-        vectors.append({
-            "id": doc["id"],
-            "values": vector,
-            "metadata": {
-                "text": doc["text"],
-                "source": doc["source"],
-                "category": doc["category"]
-            }
-        })
-    
-    index.upsert(vectors=vectors)
-    print(f"✅ Successfully seeded {len(vectors)} protected documents into the Reference Data Vault.")
+    print("Seeding Pinecone with full document vault (8 documents)...\n")
+    total_vectors = 0
+
+    for entry in VAULT_FILES:
+        path = entry["file"]
+        if not os.path.exists(path):
+            print(f"  [SKIP] File not found: {path}")
+            continue
+
+        with open(path, "r", encoding="utf-8") as f:
+            raw_text = f.read()
+
+        # Strip decoration lines, keep meaningful content
+        lines = [l.strip() for l in raw_text.splitlines()
+                 if l.strip() and not l.strip().startswith("=") and not l.strip().startswith("-")]
+        clean_text = " ".join(lines)
+
+        chunks = chunk_text(clean_text)
+        print(f"  [{entry['doc_id']}] {len(chunks)} chunks")
+
+        vectors = []
+        for i, chunk in enumerate(chunks):
+            embedding = model.encode(chunk).tolist()
+            vectors.append({
+                "id": f"{entry['doc_id']}-chunk-{i}",
+                "values": embedding,
+                "metadata": {
+                    "source": entry["doc_id"],
+                    "category": entry["category"],
+                    "text": chunk[:500],
+                    "chunk_index": i
+                }
+            })
+
+        for batch_start in range(0, len(vectors), 50):
+            index.upsert(vectors=vectors[batch_start:batch_start + 50])
+        total_vectors += len(vectors)
+
+    print(f"\nDone! {total_vectors} total vectors upserted into Pinecone.")
 
 if __name__ == "__main__":
     seed()

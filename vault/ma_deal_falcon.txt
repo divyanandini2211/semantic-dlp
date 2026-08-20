@@ -1,0 +1,67 @@
+STRICTLY CONFIDENTIAL — CORPORATE DEVELOPMENT
+Document ID: DOC-FIN-2026-Q3-MERGER
+Classification: RESTRICTED — Deal Team Eyes Only
+Project Codename: PROJECT FALCON
+
+========================================
+MERGER & ACQUISITION DEAL SUMMARY
+========================================
+
+Target Company:      CloudScale Inc.
+Target HQ:           Austin, Texas, USA
+Target Description:  Mid-market cloud infrastructure provider specializing
+                     in multi-tenant Kubernetes orchestration platforms.
+                     Approximately 210 employees. Series C funded.
+
+Acquirer:            Meridian Capital Partners (MCP)
+Transaction Type:    Full Acquisition (100% equity purchase)
+
+----------------------------------------
+FINANCIAL TERMS
+----------------------------------------
+
+Purchase Price:       USD 45,000,000 (Forty-Five Million USD)
+Payment Structure:
+  - Cash at close:   USD 40,000,000
+  - Earnout:         USD 5,000,000 over 24 months (performance-based)
+
+Valuation Basis:     6.2x ARR (CloudScale ARR: ~$7.25M as of Q2 2026)
+
+----------------------------------------
+DEAL TIMELINE
+----------------------------------------
+
+LOI Signed:          2026-06-03
+Due Diligence Start: 2026-06-10
+Due Diligence End:   2026-08-30
+Board Approval:      2026-09-12
+Regulatory Filing:   2026-10-01
+Planned Close:       November 2026
+
+----------------------------------------
+KEY PERSONNEL
+----------------------------------------
+
+Lead Partner (MCP):      David Sterling, Managing Director
+Legal Counsel (MCP):     Rachel Huang, Esq.
+Target CEO:              Brian O'Sullivan
+Target CFO:              Mei Lin Chen
+
+----------------------------------------
+STRATEGIC RATIONALE
+----------------------------------------
+
+  1. Expand MCP portfolio's cloud infrastructure vertical
+  2. Acquire CloudScale's proprietary container orchestration IP
+  3. Cross-sell to existing MCP portfolio companies
+  4. Estimated synergy value: USD 8.5M over 36 months post-close
+
+Risk Factors:
+  - CloudScale has 3 key-man dependencies
+  - Pending patent dispute with Nodus Systems (low risk)
+  - Customer churn risk: 2 top clients on 90-day renewal cycles
+
+========================================
+CONFIDENTIAL — DO NOT DISTRIBUTE
+Project Falcon materials are subject to strict NDA obligations.
+========================================

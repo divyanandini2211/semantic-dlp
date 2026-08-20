@@ -1,0 +1,63 @@
+CONFIDENTIAL — HUMAN RESOURCES DIVISION
+Document ID: DOC-HR-SALARY-EXEC-2026
+Classification: RESTRICTED — Executive Compensation
+Last Updated: 2026-03-01
+Authorized Access: HR Director, CFO, CEO only
+
+========================================
+EXECUTIVE COMPENSATION RECORD
+========================================
+
+Employee Name:    Elena Rostova
+Employee ID:      EMP-00412
+Title:            Chief Technology Officer (CTO)
+Department:       Technology & Engineering
+Date of Hire:     2019-08-15
+Location:         Berlin, Germany (Remote-Hybrid)
+
+----------------------------------------
+COMPENSATION BREAKDOWN (FY 2026)
+----------------------------------------
+
+Base Salary:         EUR 380,000 per annum
+  Payment Schedule:  Monthly (12 installments)
+  Currency:          Euro (EUR)
+
+Equity Grant:
+  Type:              Restricted Stock Units (RSUs)
+  Annual Grant:      15,000 RSUs
+  Vesting Schedule:  4-year graded vesting (25% per year)
+  Cliff:             1-year cliff from grant date
+  Current Outstanding: 42,500 RSUs unvested
+
+Annual Bonus:
+  Target:            30% of base salary (EUR 114,000)
+  Actual FY 2025:    EUR 97,000 (85% of target due to Q4 delay)
+  Payment Month:     March (following fiscal year)
+
+Benefits:
+  - Private health insurance (full family coverage)
+  - Company vehicle allowance: EUR 1,200/month
+  - Pension contribution: 8% employer match
+  - Annual professional development budget: EUR 10,000
+
+----------------------------------------
+PERFORMANCE NOTES (FY 2025)
+----------------------------------------
+
+Rating:            Exceeds Expectations (4.1/5.0)
+Review Completed:  2026-01-20
+Reviewed By:       Markus Brühl, CEO
+
+Key Achievements:
+  - Delivered Project Nexus cloud migration on time and EUR 200K under budget
+  - Built and scaled the Berlin engineering team from 12 to 47 engineers
+  - Achieved 99.97% platform uptime SLA across all production systems
+
+Non-Compete Clause:   Active — 18 months post-employment
+NDA Status:           Signed — Effective 2019-08-15
+Equity Clawback:      Applicable if termination for cause
+
+========================================
+END OF RECORD — CONFIDENTIAL
+========================================
