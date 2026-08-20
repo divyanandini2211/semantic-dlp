@@ -27,7 +27,7 @@ logger = logging.getLogger("aegis.dlp")
 # ── Module-level singletons (loaded once at import time) ─────────────────────
 _embedding_model = SentenceTransformer(config.EMBEDDING_MODEL_NAME)
 _pinecone_index  = Pinecone(api_key=config.PINECONE_API_KEY).Index(config.PINECONE_INDEX_NAME)
-_groq_client     = Groq(api_key=config.GROQ_API_KEY)
+_groq_client     = Groq(api_key=config.GROQ_API_KEY, max_retries=0)
 
 
 # ── Embedding & Regex Helpers ────────────────────────────────────────────────
@@ -93,10 +93,9 @@ def generate_enterprise_agent_response(user_query: str) -> dict:
     user_prompt = f"ENTERPRISE CONTEXT:\n{context_str}\n\nUSER QUESTION:\n{user_query}"
     
     models_to_try = [
-        config.AGENT_LLM_MODEL,
         "qwen/qwen3.6-27b",
+        "allam-2-7b",
         "openai/gpt-oss-120b",
-        "openai/gpt-oss-20b",
     ]
     
     last_err = ""
@@ -108,7 +107,7 @@ def generate_enterprise_agent_response(user_query: str) -> dict:
                     {"role": "system", "content": _AGENT_SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
                 ],
-                max_tokens=512,
+                max_tokens=1500,
                 temperature=0.2,
             )
             msg_content = response.choices[0].message.content or ""
@@ -162,10 +161,9 @@ def evaluate_factual_overlap(vault_text: str, candidate_text: str) -> dict:
     )
     
     models_to_try = [
-        config.AUDITOR_LLM_MODEL,
         "qwen/qwen3.6-27b",
+        "allam-2-7b",
         "openai/gpt-oss-120b",
-        "openai/gpt-oss-20b",
     ]
     
     last_err = ""
@@ -177,7 +175,7 @@ def evaluate_factual_overlap(vault_text: str, candidate_text: str) -> dict:
                     {"role": "system", "content": _AUDITOR_SYSTEM_PROMPT},
                     {"role": "user",   "content": user_prompt},
                 ],
-                max_tokens=1024,
+                max_tokens=1200,
                 temperature=0.0,
             )
             raw = response.choices[0].message.content.strip()
