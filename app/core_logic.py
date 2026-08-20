@@ -93,10 +93,10 @@ def generate_enterprise_agent_response(user_query: str) -> dict:
     user_prompt = f"ENTERPRISE CONTEXT:\n{context_str}\n\nUSER QUESTION:\n{user_query}"
     
     models_to_try = [
-        "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
         config.AGENT_LLM_MODEL,
-        "mixtral-8x7b-32768",
+        "qwen/qwen3.6-27b",
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
     ]
     
     last_err = ""
@@ -113,6 +113,10 @@ def generate_enterprise_agent_response(user_query: str) -> dict:
             )
             msg_content = response.choices[0].message.content or ""
             raw_text = msg_content.strip()
+            # Strip reasoning blocks (Qwen thinking-mode output)
+            if "</think>" in raw_text:
+                raw_text = raw_text.split("</think>")[-1].strip()
+                
             if raw_text:
                 return {
                     "raw_response": raw_text,
@@ -159,8 +163,8 @@ def evaluate_factual_overlap(vault_text: str, candidate_text: str) -> dict:
     
     models_to_try = [
         config.AUDITOR_LLM_MODEL,
-        "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
+        "qwen/qwen3.6-27b",
+        "openai/gpt-oss-120b",
         "openai/gpt-oss-20b",
     ]
     

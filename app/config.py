@@ -55,10 +55,10 @@ CORS_ORIGINS: list[str] = (
 
 # ── Dual Cloud LLM Configuration ─────────────────────────────────────────────
 # LLM 1: The Target Enterprise Assistant (Neutral, Unbiased)
-AGENT_LLM_MODEL: str = os.getenv("AGENT_LLM_MODEL", "openai/gpt-oss-20b")
+AGENT_LLM_MODEL: str = os.getenv("AGENT_LLM_MODEL", "qwen/qwen3.6-27b")
 
 # LLM 2: The Independent DLP Auditor (Specialized security judge for factual overlap)
-AUDITOR_LLM_MODEL: str = os.getenv("AUDITOR_LLM_MODEL", "openai/gpt-oss-120b")
+AUDITOR_LLM_MODEL: str = os.getenv("AUDITOR_LLM_MODEL", "qwen/qwen3.6-27b")
 
 
 # ── Validation (fail fast on startup if critical keys are missing) ────────────
