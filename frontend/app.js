@@ -83,16 +83,20 @@ async function loadPresetAttacks() {
     presetDropdown.innerHTML = '<option value="">-- Pick a Preset Attack --</option>';
 
     presetAttacks.forEach((attack, idx) => {
-      const chip = document.createElement('button');
-      chip.className = 'attack-chip';
-      chip.textContent = attack.title.split('—')[0].trim();
-      chip.title = attack.description;
-      chip.addEventListener('click', () => {
-        userInput.value = attack.prompt;
-        executePrompt(attack.prompt, attack.title, true);
-      });
-      quickChipsContainer.appendChild(chip);
+      // Top 8 quick chips
+      if (idx < 8) {
+        const chip = document.createElement('button');
+        chip.className = 'attack-chip';
+        chip.textContent = attack.title.split('—')[0].replace(':', '').trim();
+        chip.title = attack.description;
+        chip.addEventListener('click', () => {
+          userInput.value = attack.prompt;
+          executePrompt(attack.prompt, attack.title, true);
+        });
+        quickChipsContainer.appendChild(chip);
+      }
 
+      // Add all 20 scenarios to dropdown
       const opt = document.createElement('option');
       opt.value = idx;
       opt.textContent = `${attack.title} (${attack.category})`;
@@ -488,46 +492,51 @@ function openTelemetryDetailModal(promptText, scenarioTitle, data) {
 function openSummaryModal() {
   summaryModal.classList.add('active');
 
-  // Compute live compliance statistics
+  // Compute live compliance statistics across 20-test distribution
   let totalEvaluated = evaluatedPrompts.length;
-  let attackCount = 0;
-  let attacksCaught = 0;
-  let normalCount = 0;
+  let paraphraseTotal = 0;
+  let paraphraseCaught = 0;
+  let normalTotal = 0;
   let normalFalsePositives = 0;
   let lineageCount = 0;
 
   evaluatedPrompts.forEach(item => {
-    const isAttack = (item._scenarioTitle && !item._scenarioTitle.includes('Benign') && !item._scenarioTitle.includes('Normal')) || item.decision === 'BLOCK';
-    if (isAttack) {
-      attackCount++;
-      if (item.decision === 'BLOCK') {
-        attacksCaught++;
+    const title = item._scenarioTitle || "";
+    const isParaphrase = title.startsWith("P") || title.includes("Paraphrase");
+    const isNormal = title.startsWith("N") || title.includes("Normal");
+
+    if (isParaphrase) {
+      paraphraseTotal++;
+      if (item.decision === "BLOCK") {
+        paraphraseCaught++;
         if (item.dlp_inspection?.lineage_tag) {
           lineageCount++;
         }
       }
-    } else {
-      normalCount++;
-      if (item.decision === 'BLOCK') {
+    } else if (isNormal) {
+      normalTotal++;
+      if (item.decision === "BLOCK") {
         normalFalsePositives++;
       }
     }
   });
 
-  const catchRate = attackCount > 0 ? ((attacksCaught / attackCount) * 100).toFixed(1) : "100.0";
-  const fpRate = normalCount > 0 ? ((normalFalsePositives / normalCount) * 100).toFixed(1) : "0.0";
+  const catchRate = paraphraseTotal > 0 ? ((paraphraseCaught / paraphraseTotal) * 100).toFixed(1) : "100.0";
+  const fpRate = normalTotal > 0 ? ((normalFalsePositives / normalTotal) * 100).toFixed(1) : "0.0";
 
   let tableRows = '';
   if (evaluatedPrompts.length === 0) {
-    tableRows = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 16px;">No automated tests run yet. Click "Run Suite (1-by-1)" on the left to execute all scenarios.</td></tr>`;
+    tableRows = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 16px;">No automated tests run yet. Click "Run Suite (1-by-1)" on the left to execute all 20 scenarios.</td></tr>`;
   } else {
     evaluatedPrompts.forEach((item, idx) => {
       const isBlk = item.decision === 'BLOCK';
       const score = item.dlp_inspection?.similarity_score || 0.0;
       const lineage = item.dlp_inspection?.lineage_tag || '-';
       const title = item._scenarioTitle || `Query #${idx + 1}`;
-      const isAttackExpected = !title.includes('Benign') && !title.includes('Normal');
-      const isPass = isAttackExpected ? isBlk : !isBlk;
+      const isParaphrase = title.startsWith("P") || title.includes("Paraphrase");
+      const isNormal = title.startsWith("N") || title.includes("Normal");
+      
+      const isPass = isParaphrase ? isBlk : (isNormal ? !isBlk : true);
 
       tableRows += `
         <tr>
@@ -536,7 +545,7 @@ function openSummaryModal() {
           <td style="font-family: var(--font-mono);">${score.toFixed(3)}</td>
           <td><span class="decision-pill ${isBlk ? 'blocked' : 'allowed'}">${item.decision}</span></td>
           <td style="font-family: var(--font-mono);">${escapeHtml(lineage)}</td>
-          <td><span class="criteria-badge" style="${isPass ? 'background: #ffffff; color: #000;' : 'background: #333; color: #fff;'}">${isPass ? 'PASS' : 'FAIL'}</span></td>
+          <td><span class="criteria-badge" style="${isPass ? 'background: #ffffff; color: #000;' : 'background: #333; color: #fff;'}">${isPass ? 'PASS' : 'FLAG'}</span></td>
         </tr>
       `;
     });

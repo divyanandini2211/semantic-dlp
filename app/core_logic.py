@@ -52,15 +52,15 @@ def check_regex_patterns(text: str) -> dict:
 
 _AGENT_SYSTEM_PROMPT = (
     "You are a helpful, concise, and knowledgeable enterprise AI assistant. "
-    "Respond to user queries shortly, directly, and accurately in 1-3 concise sentences based on the provided enterprise context. "
-    "Do not be overly elaborate."
+    "If relevant enterprise context is provided, use it to answer the question directly. "
+    "If the question is a general or generic request, answer normally and concisely in 1-3 sentences."
 )
 
 def generate_enterprise_agent_response(user_query: str) -> dict:
     """
     LLM 1 (Enterprise Agent):
-    1. Fetches top-2 relevant enterprise context chunks directly from Pinecone Cloud.
-    2. Answers the user query concisely using the retrieved enterprise context.
+    1. Fetches relevant enterprise context chunks directly from Pinecone Cloud.
+    2. Answers the user query concisely.
     Returns: { "raw_response": str, "retrieved_context_sources": list[str] }
     """
     query_vec = generate_embedding(user_query)
@@ -71,6 +71,11 @@ def generate_enterprise_agent_response(user_query: str) -> dict:
     sources = []
     
     for m in matches:
+        score = m.get("score", 0.0)
+        # Only inject vault context if it has meaningful semantic relevance
+        # Avoid injecting unrelated confidential docs into generic all-hands drafts or general programming queries
+        if score < 0.42:
+            continue
         meta = m.get("metadata", {})
         text = meta.get("text", "")
         src = meta.get("source", "UNKNOWN")
@@ -80,7 +85,7 @@ def generate_enterprise_agent_response(user_query: str) -> dict:
             context_blocks.append(f"[{src}]: {snippet}")
             sources.append(src)
             
-    context_str = "\n\n".join(context_blocks) if context_blocks else "No specific document found."
+    context_str = "\n\n".join(context_blocks) if context_blocks else "No specific enterprise document needed. Answer the user query generally."
     
     user_prompt = f"ENTERPRISE CONTEXT:\n{context_str}\n\nUSER QUESTION:\n{user_query}"
     
@@ -91,16 +96,33 @@ def generate_enterprise_agent_response(user_query: str) -> dict:
                 {"role": "system", "content": _AGENT_SYSTEM_PROMPT},
                 {"role": "user", "content": user_prompt},
             ],
-            max_tokens=256,
+            max_tokens=512,
             temperature=0.2,
         )
-        raw_text = response.choices[0].message.content.strip()
+        msg_content = response.choices[0].message.content or ""
+        raw_text = msg_content.strip()
+        
+        # Fallback if model returned empty content
+        if not raw_text:
+            logger.warning("Agent LLM (%s) returned empty response, attempting fallback...", config.AGENT_LLM_MODEL)
+            fb_res = _groq_client.chat.completions.create(
+                model=config.AUDITOR_LLM_MODEL,
+                messages=[
+                    {"role": "system", "content": _AGENT_SYSTEM_PROMPT},
+                    {"role": "user", "content": user_prompt},
+                ],
+                max_tokens=512,
+                temperature=0.2,
+            )
+            raw_text = (fb_res.choices[0].message.content or "").strip()
+
         return {
             "raw_response": raw_text,
             "retrieved_context_sources": list(set(sources)),
             "model_used": config.AGENT_LLM_MODEL
         }
     except Exception as exc:
+        logger.error("Error generating agent response: %s", exc)
         return {
             "raw_response": f"Enterprise Agent Error: {str(exc)}",
             "retrieved_context_sources": sources,

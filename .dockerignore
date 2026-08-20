@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.vscode
+.idea
+vendor/
+audit_logs.db
+tests/corpus.json
+tests/generate_corpus.py
+.agents
+.gemini
+*.log

@@ -96,6 +96,12 @@
         "text": "Valuations for mid-sized cloud infrastructure companies typically range from $100 million to $1 billion, with pricing primarily driven by revenue multiples (generally 5x–10x) and profitability rather than seasonal timing. The Q3 window does not inherently compress or expand this range, as actual deal values depend on prevailing interest rates, private equity deployment cycles, and the target’s specific growth trajectory at closing."
     },
     {
+        "id": "B02",
+        "type": "Borderline-General HR",
+        "expected": "ALLOW",
+        "text": "Executive compensation benchmarks for high-growth technology companies typically feature base salaries between $300,000 and $500,000 with annual equity grants. Compensation committees routinely review peer market percentiles and vesting schedules to align executive retention with long-term organizational milestones."
+    },
+    {
         "id": "B03",
         "type": "Borderline-General Med",
         "expected": "ALLOW",

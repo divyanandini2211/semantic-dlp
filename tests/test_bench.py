@@ -27,7 +27,7 @@ def run_benchmark():
     system_errors = 0
 
     for item in BENCHMARK_CASES:
-        time.sleep(1.2)
+        time.sleep(0.5)
         payload = {"agent_id": "benchmark-runner", "output_text": item["text"]}
         try:
             res = requests.post(API_URL, json=payload, timeout=60)
@@ -45,10 +45,10 @@ def run_benchmark():
         passed = (actual == item["expected"])
         status = "PASS" if passed else "FAIL"
 
-        print(f"\n[Test {item['id']}] {item['text']}")
+        print(f"\n[Test {item['id']}] {item['text'][:80]}...", flush=True)
         for step in trace_logs:
-            print(f"  -> {step}")
-        print(f"  => API Resolved: {actual}")
+            print(f"  -> {step}", flush=True)
+        print(f"  => API Resolved: {actual} | Expected: {item['expected']} [{status}]", flush=True)
 
         if actual == "ERROR":
             system_errors += 1
