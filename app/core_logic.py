@@ -155,16 +155,23 @@ def evaluate_factual_overlap(vault_text: str, candidate_text: str) -> dict:
         f'AGENT OUTPUT TO INSPECT:\n"""{candidate_text}"""'
     )
     
-    max_retries = 3
-    for attempt in range(max_retries):
+    models_to_try = [
+        config.AUDITOR_LLM_MODEL,
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "openai/gpt-oss-20b",
+    ]
+    
+    last_err = ""
+    for model_name in models_to_try:
         try:
             response = _groq_client.chat.completions.create(
-                model=config.AUDITOR_LLM_MODEL,
+                model=model_name,
                 messages=[
                     {"role": "system", "content": _AUDITOR_SYSTEM_PROMPT},
                     {"role": "user",   "content": user_prompt},
                 ],
-                max_tokens=2048,
+                max_tokens=1024,
                 temperature=0.0,
             )
             raw = response.choices[0].message.content.strip()
@@ -196,28 +203,15 @@ def evaluate_factual_overlap(vault_text: str, candidate_text: str) -> dict:
             return data
 
         except Exception as exc:
-            err = str(exc)
-            if ("429" in err or "rate limit" in err.lower()) and attempt < max_retries - 1:
-                time.sleep(2.5 * (attempt + 1))
-                continue
-                
-            reason = (
-                "LLM evaluation failed: API Credit / Rate Limit exceeded."
-                if "429" in err or "rate limit" in err.lower()
-                else f"LLM evaluation failed: {err}"
-            )
-            return {
-                "overlap_detected": False,
-                "confidence": 0.0,
-                "extracted_facts": [],
-                "explanation": reason,
-            }
+            last_err = str(exc)
+            # If 429 rate limit, immediately try next model in pool
+            continue
             
     return {
         "overlap_detected": False,
         "confidence": 0.0,
         "extracted_facts": [],
-        "explanation": "LLM evaluation failed: Max retries exceeded.",
+        "explanation": f"LLM evaluation failed: {last_err}",
     }
 
 
