@@ -11,6 +11,7 @@ Architecture:
   • Vault: Pinecone Cloud Vector Store (Single source of truth).
 """
 import json
+import logging
 import re
 import time
 from typing import Any
@@ -20,6 +21,8 @@ from pinecone import Pinecone
 from groq import Groq
 
 from app import config
+
+logger = logging.getLogger("aegis.dlp")
 
 # ── Module-level singletons (loaded once at import time) ─────────────────────
 _embedding_model = SentenceTransformer(config.EMBEDDING_MODEL_NAME)
@@ -89,24 +92,18 @@ def generate_enterprise_agent_response(user_query: str) -> dict:
     
     user_prompt = f"ENTERPRISE CONTEXT:\n{context_str}\n\nUSER QUESTION:\n{user_query}"
     
-    try:
-        response = _groq_client.chat.completions.create(
-            model=config.AGENT_LLM_MODEL,
-            messages=[
-                {"role": "system", "content": _AGENT_SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt},
-            ],
-            max_tokens=512,
-            temperature=0.2,
-        )
-        msg_content = response.choices[0].message.content or ""
-        raw_text = msg_content.strip()
-        
-        # Fallback if model returned empty content
-        if not raw_text:
-            logger.warning("Agent LLM (%s) returned empty response, attempting fallback...", config.AGENT_LLM_MODEL)
-            fb_res = _groq_client.chat.completions.create(
-                model=config.AUDITOR_LLM_MODEL,
+    models_to_try = [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        config.AGENT_LLM_MODEL,
+        "mixtral-8x7b-32768",
+    ]
+    
+    last_err = ""
+    for model_name in models_to_try:
+        try:
+            response = _groq_client.chat.completions.create(
+                model=model_name,
                 messages=[
                     {"role": "system", "content": _AGENT_SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt},
@@ -114,20 +111,25 @@ def generate_enterprise_agent_response(user_query: str) -> dict:
                 max_tokens=512,
                 temperature=0.2,
             )
-            raw_text = (fb_res.choices[0].message.content or "").strip()
+            msg_content = response.choices[0].message.content or ""
+            raw_text = msg_content.strip()
+            if raw_text:
+                return {
+                    "raw_response": raw_text,
+                    "retrieved_context_sources": list(set(sources)),
+                    "model_used": model_name
+                }
+        except Exception as exc:
+            last_err = str(exc)
+            logger.warning("Model %s failed: %s, falling back to next model...", model_name, exc)
+            continue
 
-        return {
-            "raw_response": raw_text,
-            "retrieved_context_sources": list(set(sources)),
-            "model_used": config.AGENT_LLM_MODEL
-        }
-    except Exception as exc:
-        logger.error("Error generating agent response: %s", exc)
-        return {
-            "raw_response": f"Enterprise Agent Error: {str(exc)}",
-            "retrieved_context_sources": sources,
-            "model_used": config.AGENT_LLM_MODEL
-        }
+    logger.error("All agent models failed: %s", last_err)
+    return {
+        "raw_response": f"Enterprise Agent Error: {last_err}",
+        "retrieved_context_sources": sources,
+        "model_used": "fallback-exhausted"
+    }
 
 
 # ── LLM 2: Stage 3 Independent DLP Auditor (Specialized Security Judge) ──────
